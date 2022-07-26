@@ -11,75 +11,114 @@ export function Text({
 	Object.assign(this, {text, textBackground, textShadow});
 
 	this.compute = () => {
-		this.computeText();
+		this.raw = this.text.split("").map(char => ({char}));
 
-		// Auto-calculate the size
-		if (!this.size.length) this.size = [
-			this.w / scale,
-			this.h / scale,
-		];
-
+		this.format();
+		this.computeSize();
 		this.computeDefault();
 
 		return this;
 	};
 
-	this.computeText = () => {
-		let lines = this.text.split("\n").map(l => l.split("").map(char => ({char}))),
-			width,
-			x,
-			y = 0;
+	this.computeSize = () => {
+		const lines = this.text.split("\n").map(l => l.split("").map(char => ({char})));
+		let maxWidth, maxHeight, width, x, y;
+		x = y = width = maxWidth = maxHeight = 0;
 
-		this.w = this.h = 0;
+		if (this.formatted.length) maxHeight = Font.lineHeight + Font.lineSpacing;
 
-		for (const l of lines) {
-			width = x = 0;
+		this.chars = [];
 
-			for (const c of l) {
-				const
-					i = Font.chars[c.char] ? c.char : " ",
-					w = Font.chars[i].size + Font.letterSpacing;
+		for (const c of this.formatted) {
+			if (c.char === "\n") {
+				x = 0;
+				y += (Font.lineHeight + Font.lineSpacing) * scale;
+
+				console.log(width, maxWidth)
+
+				if (width > maxWidth) maxWidth = width;
+				maxHeight += Font.lineHeight + Font.lineSpacing;
+
+				width = 0;
+			} else {
+				let i = Font.char[c.char] ? c.char : " ",
+					w = Font.char[i].size + Font.letterSpacing;
 
 				Object.assign(c, {x, y});
 
 				width += w;
 				x += w * scale;
+
+				this.chars.push(c);
 			}
-
-			y += (Font.lineHeight + Font.lineSpacing) * scale;
-
-			if (width > this.w) this.w = width;
-			this.h += (Font.lineHeight + Font.lineSpacing);
 		}
 
-		this.w *= scale;
-		this.h *= scale;
-		this.lines = lines;
+		if (width > maxWidth) maxWidth = width;
+		if (!this.size.length) {
+			this.size = [maxWidth, maxHeight];
+			this.w = maxWidth * scale;
+			this.h = maxHeight * scale;
+		}
+	};
+
+	this.format = () => {
+		const colors = Object.values(Font.color);
+		let formatting, color;
+
+		this.formatted = [];
+
+		for (const c of this.raw) {
+			if (formatting) {
+				formatting = false;
+
+				color = colors.find(color => c.char === color.code)?.foreground ?? null;
+
+				continue;
+			}
+
+			if (c.char === Font.formattingPrefix) {
+				formatting = true;
+
+				continue;
+			}
+
+			c.color = color;
+
+			this.formatted.push(c);
+		}
 	};
 
 	this.draw = () => {
 		const ctx = this.layer.ctx;
+		let color;
 
 		if (this.textBackground) {
 			ctx.fillStyle = `#${this.textBackground.toString(16)}`;
 			ctx.fillRect(this.x, this.y, this.w, this.h);
 		}
 
-		for (const l of this.lines) {
-			for (const c of l) {
-				const char = Font.chars[c.char];
+		for (const c of this.chars) {
+			if (!Font.char[c.char]) continue;
 
-				ctx.drawImage(
-					Font.image,
-					...char.uv,
-					char.size,
-					Font.lineHeight,
-					this.x + c.x,
-					this.y + c.y,
-					char.size * scale,
-					Font.lineHeight * scale,
-				);
+			let char = Font.char[c.char],
+				size = [char.size + Font.letterSpacing, Font.lineHeight];
+
+			if (color !== c.color) {
+				color = c.color;
+				ctx.fillStyle = color;
 			}
+
+			ctx.save();
+			ctx.filter = `drop-shadow(${scale}px ${scale}px 0 ${color}`;
+			ctx.drawImage(
+				Font.image,
+				...char.uv,
+				...size,
+				this.x + c.x,
+				this.y + c.y,
+				...(size.map(s => s * scale)),
+			);
+			ctx.restore();
 		}
 	};
 };

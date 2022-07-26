@@ -1,5 +1,5 @@
 {
-	"chars": {
+	"char": {
 		" ": {
 			"size": 3,
 			"uv": [0, 16]
@@ -443,6 +443,88 @@
 		"²": {
 			"size": 4,
 			"uv": [104, 120]
+		}
+	},
+	"color": {
+		"black": {
+			"code": "0",
+			"foreground": "#000000",
+			"background": "#000000"
+		},
+		"dark_blue": {
+			"code": "1",
+			"foreground": "#0000aa",
+			"background": "#00002a"
+		},
+		"dark_green": {
+			"code": "2",
+			"foreground": "#00aa00",
+			"background": "#002a00"
+		},
+		"dark_aqua": {
+			"code": "3",
+			"foreground": "#00aaaa",
+			"background": "#002a2a"
+		},
+		"dark_red": {
+			"code": "4",
+			"foreground": "#aa0000",
+			"background": "#2a0000"
+		},
+		"dark_purple": {
+			"code": "5",
+			"foreground": "#aa00aa",
+			"background": "#2a002a"
+		},
+		"gold": {
+			"code": "6",
+			"foreground": "#ffaa00",
+			"background": "#2a2a00"
+		},
+		"gray": {
+			"code": "7",
+			"foreground": "#aaaaaa",
+			"background": "#2a2a2a"
+		},
+		"dark_gray": {
+			"code": "8",
+			"foreground": "#555555",
+			"background": "#151515"
+		},
+		"blue": {
+			"code": "9",
+			"foreground": "#5555ff",
+			"background": "#15153f"
+		},
+		"green": {
+			"code": "a",
+			"foreground": "#55ff55",
+			"background": "#153f15"
+		},
+		"aqua": {
+			"code": "b",
+			"foreground": "#55ffff",
+			"background": "#153f3f"
+		},
+		"red": {
+			"code": "c",
+			"foreground": "#ff5555",
+			"background": "#3f1515"
+		},
+		"light_purple": {
+			"code": "d",
+			"foreground": "#ff55ff",
+			"background": "#3f153f"
+		},
+		"yellow": {
+			"code": "e",
+			"foreground": "#ffff55",
+			"background": "#3f3f15"
+		},
+		"white": {
+			"code": "f",
+			"foreground": "#ffffff",
+			"background": "#3f3f3f"
 		}
 	}
 }
