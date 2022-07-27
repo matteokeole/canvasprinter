@@ -3,12 +3,13 @@ import {Font, scale} from "./index.js";
 
 export function Text({
 	text = "",
-	textBackground,
+	background,
 	textShadow = false,
+	textShadowOffset = [1, -1],
 } = {}) {
 	Component.call(this, ...arguments);
 
-	Object.assign(this, {text, textBackground, textShadow});
+	Object.assign(this, {text, background, textShadow, textShadowOffset});
 
 	this.compute = () => {
 		this.raw = this.text.split("").map(char => ({char}));
@@ -61,7 +62,7 @@ export function Text({
 
 	this.format = () => {
 		const colors = Object.values(Font.color);
-		let formatting, color;
+		let formatting, color, format;
 
 		this.formatted = [];
 
@@ -69,7 +70,10 @@ export function Text({
 			if (formatting) {
 				formatting = false;
 
-				color = colors.find(color => c.char === color.code) ?? null;
+				if (!isNaN(parseInt(c.char, 16))) {
+					// Color code
+					color = colors.find(color => c.char === color.code) ?? null;
+				} else format = c.char;
 
 				continue;
 			}
@@ -80,69 +84,27 @@ export function Text({
 				continue;
 			}
 
-			c.color = color;
+			Object.assign(c, {color, format});
 
 			this.formatted.push(c);
 		}
-
-		console.log(this.formatted)
 	};
 
 	this.draw = () => {
+		let color = Font.defaultColor;
+		let format;
+
 		const TextBuffer = document.createElement("canvas");
 		TextBuffer.width = this.w;
 		TextBuffer.height = this.h;
-		TextBuffer.style.background = "#000s";
+		// document.body.before(TextBuffer);
 		const ctx = this.layer.ctx;
+		ctx.globalCompositeOperation = "destination-over";
 		const tctx = TextBuffer.getContext("2d");
-		tctx.imageSmoothingEnabled = false;
-		let color = Font.defaultColor;
+		tctx.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
+		tctx.fillStyle = color.foreground;
+		tctx.save();
 
-		// Shadow
-		if (this.textShadow) {
-			for (const c of this.chars) {
-				if (!Font.char[c.char]) continue;
-
-				let char = Font.char[c.char],
-					size = [char.size, Font.lineHeight];
-
-				if (c.color && color !== c.color) color = c.color;
-				tctx.fillStyle = color?.background;
-
-				tctx.drawImage(
-					Font.image,
-					...char.uv,
-					...size,
-					c.x + scale,
-					c.y + scale,
-					...(size.map(s => s * scale)),
-				);
-
-				tctx.globalCompositeOperation = "source-atop";
-
-				tctx.fillRect(
-					c.x + scale,
-					c.y + scale,
-					...(size.map(s => s * scale)),
-				);
-
-				tctx.globalCompositeOperation = "source-over";
-			}
-
-			ctx.drawImage(
-				TextBuffer,
-				this.x,
-				this.y,
-				this.w,
-				this.h,
-			);
-
-			tctx.clearRect(0, 0, this.w, this.h);
-
-			color = Font.defaultColor;
-		}
-
-		// Text
 		for (const c of this.chars) {
 			if (!Font.char[c.char]) continue;
 
@@ -151,6 +113,13 @@ export function Text({
 
 			if (c.color && color !== c.color) color = c.color;
 			tctx.fillStyle = color?.foreground;
+
+			if (c.format && format !== c.format) {
+				format = c.format;
+
+				if (format === "i") tctx.transform(1, 0, -0.25, 1, scale * (this.h / (size[1] * scale) - .25), 0);
+				if (format === "r") tctx.restore();
+			}
 
 			tctx.drawImage(
 				Font.image,
@@ -179,5 +148,47 @@ export function Text({
 			this.w,
 			this.h,
 		);
+
+		color = Font.defaultColor;
+		format = null;
+		tctx.globalCompositeOperation = "source-atop";
+		tctx.save();
+
+		// Drop-shadow
+		if (this.textShadow) {
+			const offset = this.textShadowOffset.map(o => o * scale);
+
+			for (const c of this.chars) {
+				if (!Font.char[c.char]) continue;
+
+				let char = Font.char[c.char],
+					size = [char.size, Font.lineHeight];
+
+				if (c.color && color !== c.color) color = c.color;
+				tctx.fillStyle = color?.background;
+
+				if (c.format && format !== c.format) {
+					format = c.format;
+
+					if (format === "i") tctx.transform(1, 0, -0.25, 1, scale * (this.h / (size[1] * scale) - .25), 0);
+					if (format === "r") tctx.restore();
+				}
+
+				tctx.fillRect(c.x, c.y, ...(size.map(s => s * scale)));
+			}
+
+			ctx.drawImage(
+				TextBuffer,
+				this.x + offset[0],
+				this.y - offset[1],
+				this.w,
+				this.h,
+			);
+		}
+
+		if (this.background) {
+			ctx.fillStyle = `#${this.background.toString(16)}`;
+			ctx.fillRect(this.x, this.y, this.w, this.h);
+		}
 	};
 };
