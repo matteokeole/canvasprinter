@@ -16,5 +16,7 @@ export const Font = {
 		const {char, color} = await (await fetch(path)).json();
 
 		Object.assign(this, {char, color});
+
+		this.defaultColor = this.color.white;
 	},
 };

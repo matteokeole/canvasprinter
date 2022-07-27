@@ -34,8 +34,6 @@ export function Text({
 				x = 0;
 				y += (Font.lineHeight + Font.lineSpacing) * scale;
 
-				console.log(width, maxWidth)
-
 				if (width > maxWidth) maxWidth = width;
 				maxHeight += Font.lineHeight + Font.lineSpacing;
 
@@ -71,7 +69,7 @@ export function Text({
 			if (formatting) {
 				formatting = false;
 
-				color = colors.find(color => c.char === color.code)?.foreground ?? null;
+				color = colors.find(color => c.char === color.code) ?? null;
 
 				continue;
 			}
@@ -86,39 +84,100 @@ export function Text({
 
 			this.formatted.push(c);
 		}
+
+		console.log(this.formatted)
 	};
 
 	this.draw = () => {
+		const TextBuffer = document.createElement("canvas");
+		TextBuffer.width = this.w;
+		TextBuffer.height = this.h;
+		TextBuffer.style.background = "#000s";
 		const ctx = this.layer.ctx;
-		let color;
+		const tctx = TextBuffer.getContext("2d");
+		tctx.imageSmoothingEnabled = false;
+		let color = Font.defaultColor;
 
-		if (this.textBackground) {
-			ctx.fillStyle = `#${this.textBackground.toString(16)}`;
-			ctx.fillRect(this.x, this.y, this.w, this.h);
+		// Shadow
+		if (this.textShadow) {
+			for (const c of this.chars) {
+				if (!Font.char[c.char]) continue;
+
+				let char = Font.char[c.char],
+					size = [char.size, Font.lineHeight];
+
+				if (c.color && color !== c.color) color = c.color;
+				tctx.fillStyle = color?.background;
+
+				tctx.drawImage(
+					Font.image,
+					...char.uv,
+					...size,
+					c.x + scale,
+					c.y + scale,
+					...(size.map(s => s * scale)),
+				);
+
+				tctx.globalCompositeOperation = "source-atop";
+
+				tctx.fillRect(
+					c.x + scale,
+					c.y + scale,
+					...(size.map(s => s * scale)),
+				);
+
+				tctx.globalCompositeOperation = "source-over";
+			}
+
+			ctx.drawImage(
+				TextBuffer,
+				this.x,
+				this.y,
+				this.w,
+				this.h,
+			);
+
+			tctx.clearRect(0, 0, this.w, this.h);
+
+			color = Font.defaultColor;
 		}
 
+		// Text
 		for (const c of this.chars) {
 			if (!Font.char[c.char]) continue;
 
 			let char = Font.char[c.char],
-				size = [char.size + Font.letterSpacing, Font.lineHeight];
+				size = [char.size, Font.lineHeight];
 
-			if (color !== c.color) {
-				color = c.color;
-				ctx.fillStyle = color;
-			}
+			if (c.color && color !== c.color) color = c.color;
+			tctx.fillStyle = color?.foreground;
 
-			ctx.save();
-			ctx.filter = `drop-shadow(${scale}px ${scale}px 0 ${color}`;
-			ctx.drawImage(
+			tctx.drawImage(
 				Font.image,
 				...char.uv,
 				...size,
-				this.x + c.x,
-				this.y + c.y,
+				c.x,
+				c.y,
 				...(size.map(s => s * scale)),
 			);
-			ctx.restore();
+
+			tctx.globalCompositeOperation = "source-atop";
+
+			tctx.fillRect(
+				c.x,
+				c.y,
+				...(size.map(s => s * scale)),
+			);
+
+			tctx.globalCompositeOperation = "source-over";
 		}
+
+		ctx.drawImage(
+			TextBuffer,
+			this.x,
+			this.y,
+			this.w,
+			this.h,
+		);
 	};
 };

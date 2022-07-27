@@ -1,29 +1,27 @@
 import {Font, Layer, Component} from "../src/index.js";
 
-export let scale = 5;
+export let scale = 2;
 
-(async () => {
-	await Font.loadImage("public/font/ascii.png");
-	await Font.loadDefs("public/font/font.json");
+await Font.loadImage("public/font/ascii.png");
+await Font.loadDefs("public/font/font.json");
 
-	const
-		layer = new Layer({
-			background: 0x312646,
-			smooth: false,
-		}),
-		component = new Component.Text({
-			origin: ["center", "center"],
-			offset: [0, 0],
-			// text: "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit...",
-			text: "§aLorem §dipsum",
-			textBackground: 0x3e3158,
-			textShadow: false,
-		});
+const
+	layer = new Layer({
+		background: 0x312646,
+		smooth: false,
+	}),
+	component = new Component.Text({
+		origin: ["center", "center"],
+		offset: [0, 0],
+		text: "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit...",
+		// text: "§aLorem\nt§dipsum.\n\n§6Nice. Finally gold text.",
+		textBackground: 0x3e3158,
+		textShadow: true,
+	});
 
-	layer
-		.add(component)
-		.redraw({forceCompute: true});
-})();
+layer
+	.add(component)
+	.redraw({forceCompute: true});
 
 /* Todo
 - Load multiple font images (base, accented, etc)
