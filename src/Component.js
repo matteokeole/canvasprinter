@@ -14,31 +14,25 @@ export function Component({
 		let [ox, oy] = offset,
 			[w, h] = this.size,
 			[lw, lh] = [this.layer.width, this.layer.height],
-			x = 0,
-			y = 0;
+			x = ox,
+			y = oy;
 
 		// Calculate position relative to the layer
 		switch (origin[0]) {
-			case "left":
-				x = ox;
-				break;
 			case "right":
-				x = lw - w - ox;
+				x = lw - w - x;
 				break;
 			case "center":
-				x = (lw - w) / 2 + ox;
+				x += (lw - w) / 2;
 				break;
 		}
 
 		switch (origin[1]) {
-			case "top":
-				y = oy;
-				break;
 			case "bottom":
-				y = lh - h - oy;
+				y = lh - h - y;
 				break;
 			case "center":
-				y = (lh - h) / 2 + oy;
+				y += (lh - h) / 2;
 				break;
 		}
 

@@ -6,19 +6,16 @@ import {format} from "./utils/format.js";
 export function Text({
 	padding = [0, 0, 0, 0], // t/r/b/l
 	text = "",
-	dropShadow = false,
-	dropShadowOffset = [1, -1],
 	letterSpacing = Font.letterSpacing,
 	lineSpacing = Font.lineSpacing,
-	title = false,
+	dropShadow = false,
+	dropShadowOffset = [1, -1],
 } = {}) {
 	Component.call(this, ...arguments);
 
-	Object.assign(this, {padding, text, dropShadow, dropShadowOffset, letterSpacing, lineSpacing, title});
+	Object.assign(this, {padding, text, dropShadow, dropShadowOffset, letterSpacing, lineSpacing});
 
 	this.compute = () => {
-		this.raw = this.text.split("").map(char => ({char}));
-
 		format.call(this);
 		this.computeText();
 		this.__compute();
@@ -31,7 +28,6 @@ export function Text({
 		let maxWidth, maxHeight, width, x, y;
 		maxWidth = width = x = padding[3];
 		maxHeight = y = padding[0];
-		let firstLine = true;
 
 		if (this.formatted.length) maxHeight = Font.lineHeight;
 
@@ -47,12 +43,6 @@ export function Text({
 			if (c.char === "\n") {
 				x = padding[3];
 				y += (Font.lineHeight + this.lineSpacing);
-
-				if (this.title && firstLine) {
-					y += this.lineSpacing;
-
-					firstLine = false;
-				}
 
 				if (width > maxWidth) maxWidth = width + padding[1];
 				width = 0;
@@ -170,6 +160,7 @@ export function Text({
 		);
 
 		tctx.fillStyle = Font.defaultColor.background;
+		tctx.resetTransform();
 		tctx.save();
 
 		// Optional drop-shadow

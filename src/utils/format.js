@@ -1,12 +1,14 @@
 import {Font} from "../index.js";
 
 export function format() {
-	const colors = Object.values(Font.color);
+	const
+		colors = Object.values(Font.color),
+		chars = this.text.split("").map(char => ({char}));
 	let f, p, parsingFormatter, parsingColorPrefix, parsingColor;
 
 	this.formatted = [];
 
-	for (const c of this.raw) {
+	for (const c of chars) {
 		// Search for formatting prefixes
 		if (c.char === Font.formattingPrefix) {
 			parsingFormatter = true;
