@@ -11,22 +11,25 @@ const
 		smooth: false,
 	}),
 	component = new Component.Text({
-		origin: ["center", "center"],
-		offset: [0, 0],
+		origin: ["left", "top"],
+		offset: [1, 1],
+		padding: [1, 1, 0, 1],
 		background: 0x3e3158,
-		text: "Example with §i§eitalic§r §fformating",
-		text: "Example with color formatting\n\n§dJ'aime §7les §etacos §8de §cma §5maman.\n\n\n\n\n\n\n\n§3(Et ma maman c'est ma maman.)",
-		text: "§00 §11 §22 §33\n§44 §55 §66 §77\n§88 §99 §aa §bb\n§cc §dd §ee §ff",
+		text: "§c:aSuper Sword §c:f(#0276)\n§c:7Sharpness V\nFire Aspect II\n§c:cThis is a great sword!\n\n§c:9+13.25 Attack Damage\n§c:8minecraft:diamond_sword\nNBT: 2 tag(s)",
+		text: "Minecraft 1.8.1 (1.8.1/vanilla)\n57 fps",
+		text: "Example with §i§c:eitalic §rformating",
+		text: "§c:00 §c:11 §c:22 §c:33\n§c:44 §c:55 §c:66 §c:77\n§c:88 §c:99 §c:aa §c:bb\n§c:cc §c:dd §c:ee §c:ff",
 		text: "Example with default formatting",
-		text: "§a²Super Sword §f(#0276)\n§7 Sharpness V\n Fire Aspect II\n§cThis is a great sword!\n\n§9+13.25 Attack Damage\n§8minecraft:diamond_sword\nNBT: 2 tag(s)",
-		textShadow: true,
+		dropShadow: true,
 	});
 
 layer
 	.add(component)
-	.redraw({forceCompute: true});
+	.compute()
+	.scale()
+	.draw();
 
-/* Todo
+/*
 - Load multiple font images (base, accented, etc)
 - Replace undefined characters
 - Store prefixes in font.json

@@ -1,6 +1,7 @@
 import {SCREEN} from "./index.js";
 
 export function Layer({
+	name = "",
 	background,
 	smooth = true,
 } = {}) {
@@ -10,6 +11,8 @@ export function Layer({
 	this.height = SCREEN.HEIGHT;
 
 	this.canvas = document.createElement("canvas");
+	this.canvas.classList.add("layer");
+	name && this.canvas.classList.add(name);
 	this.canvas.width = SCREEN.MAX_WIDTH;
 	this.canvas.height = SCREEN.MAX_HEIGHT;
 
@@ -18,6 +21,8 @@ export function Layer({
 
 	this.components = new Set();
 	this.resources = new Set();
+
+	this.draws = 0;
 
 	this.resize = (force_compute = false) => {
 		this.width = SCREEN.WIDTH;
@@ -57,20 +62,43 @@ export function Layer({
 		}
 	};
 
-	this.redraw = async ({
-		forceCompute = false,
-		forceReload = false,
-	} = {}) => {
+	this.compute = () => {
+		for (const component of this.components) {
+			component.compute();
+		}
+
+		return this;
+	};
+
+	this.scale = () => {
+		for (const component of this.components) {
+			component.scale();
+		}
+
+		return this;
+	};
+
+	this.draw = async ({forceReload = false} = {}) => {
 		this.canvas.style.background = `#${this.background.toString(16)}`;
 
 		if (forceReload) await this.loadTextures();
 
-		if (forceCompute) for (const component of this.components) {
-			component.compute().draw();
-		} else for (const component of this.components) {
+		for (const component of this.components) {
 			component.draw();
 		}
+
+		this.draws++;
+
+		return this;
 	};
+
+	this.erase = () => {
+		this.ctx.clearRect(0, 0, this.width, this.height);
+
+		return this;
+	};
+
+	this.redraw = async ({forceReload = false} = {}) => this.erase().draw({forceReload});
 
 	document.body.appendChild(this.canvas);
 

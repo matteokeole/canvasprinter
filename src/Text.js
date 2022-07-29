@@ -1,194 +1,223 @@
+import {Buffer} from "./Buffer.js";
 import {Component} from "./Component.js";
 import {Font, scale} from "./index.js";
+import {format} from "./utils/format.js";
 
 export function Text({
+	padding = [0, 0, 0, 0], // t/r/b/l
 	text = "",
-	background,
-	textShadow = false,
-	textShadowOffset = [1, -1],
+	dropShadow = false,
+	dropShadowOffset = [1, -1],
+	letterSpacing = Font.letterSpacing,
+	lineSpacing = Font.lineSpacing,
+	title = false,
 } = {}) {
 	Component.call(this, ...arguments);
 
-	Object.assign(this, {text, background, textShadow, textShadowOffset});
+	Object.assign(this, {padding, text, dropShadow, dropShadowOffset, letterSpacing, lineSpacing, title});
 
 	this.compute = () => {
 		this.raw = this.text.split("").map(char => ({char}));
 
-		this.format();
-		this.computeSize();
-		this.computeDefault();
+		format.call(this);
+		this.computeText();
+		this.__compute();
 
 		return this;
 	};
 
-	this.computeSize = () => {
+	this.computeText = () => {
 		const lines = this.text.split("\n").map(l => l.split("").map(char => ({char})));
 		let maxWidth, maxHeight, width, x, y;
-		x = y = width = maxWidth = maxHeight = 0;
+		maxWidth = width = x = padding[3];
+		maxHeight = y = padding[0];
+		let firstLine = true;
 
-		if (this.formatted.length) maxHeight = Font.lineHeight + Font.lineSpacing;
+		if (this.formatted.length) maxHeight = Font.lineHeight;
 
 		this.chars = [];
 
 		for (const c of this.formatted) {
+			if (c.formatter) {
+				this.chars.push(c);
+
+				continue;
+			}
+
 			if (c.char === "\n") {
-				x = 0;
-				y += (Font.lineHeight + Font.lineSpacing) * scale;
+				x = padding[3];
+				y += (Font.lineHeight + this.lineSpacing);
 
-				if (width > maxWidth) maxWidth = width;
-				maxHeight += Font.lineHeight + Font.lineSpacing;
+				if (this.title && firstLine) {
+					y += this.lineSpacing;
 
+					firstLine = false;
+				}
+
+				if (width > maxWidth) maxWidth = width + padding[1];
 				width = 0;
 			} else {
 				let i = Font.char[c.char] ? c.char : " ",
-					w = Font.char[i].size + Font.letterSpacing;
+					w = Font.char[i].size + this.letterSpacing;
 
 				Object.assign(c, {x, y});
 
 				width += w;
-				x += w * scale;
+				x += w;
 
 				this.chars.push(c);
 			}
 		}
 
-		if (width > maxWidth) maxWidth = width;
-		if (!this.size.length) {
+		if (width > maxWidth) maxWidth = width + padding[1];
+		maxHeight += y + padding[2];
+
+		// if (!this.size.length) {
 			this.size = [maxWidth, maxHeight];
-			this.w = maxWidth * scale;
-			this.h = maxHeight * scale;
-		}
+			this.w = maxWidth;
+			this.h = maxHeight;
+		// }
 	};
 
-	this.format = () => {
-		const colors = Object.values(Font.color);
-		let formatting, color, format;
+	this.scale = () => {
+		let {x, y, w, h, chars, dropShadowOffset} = this;
 
-		this.formatted = [];
+		x *= scale;
+		y *= scale;
 
-		for (const c of this.raw) {
-			if (formatting) {
-				formatting = false;
+		w *= scale;
+		h *= scale;
 
-				if (!isNaN(parseInt(c.char, 16))) {
-					// Color code
-					color = colors.find(color => c.char === color.code) ?? null;
-				} else format = c.char;
-
-				continue;
-			}
-
-			if (c.char === Font.formattingPrefix) {
-				formatting = true;
-
-				continue;
-			}
-
-			Object.assign(c, {color, format});
-
-			this.formatted.push(c);
+		chars = structuredClone(chars);
+		for (const c of chars) {
+			c.x *= scale;
+			c.y *= scale;
 		}
+
+		dropShadowOffset = dropShadowOffset.map(o => o * scale);
+
+		this.scaled = {x, y, w, h, chars, dropShadowOffset};
 	};
 
 	this.draw = () => {
-		let color = Font.defaultColor;
-		let format;
+		let {scaled} = this, tctx, ctx, char;
 
-		const TextBuffer = document.createElement("canvas");
-		TextBuffer.width = this.w;
-		TextBuffer.height = this.h;
-		// document.body.before(TextBuffer);
-		const ctx = this.layer.ctx;
+		// Configure the layer context
+		ctx = this.layer.ctx;
 		ctx.globalCompositeOperation = "destination-over";
-		const tctx = TextBuffer.getContext("2d");
+
+		// Configure the text buffer
+		Buffer.Text.width = scaled.w;
+		Buffer.Text.height = scaled.h;
+
+		tctx = Buffer.Text.ctx;
 		tctx.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
-		tctx.fillStyle = color.foreground;
+		tctx.fillStyle = Font.defaultColor.foreground;
 		tctx.save();
 
-		for (const c of this.chars) {
-			if (!Font.char[c.char]) continue;
+		for (const c of scaled.chars) {
+			char = Font.char[c.char];
 
-			let char = Font.char[c.char],
-				size = [char.size, Font.lineHeight];
+			if (c.formatter) {
+				switch (c.formatter) {
+					case "c":
+						// Colorize
+						tctx.fillStyle = c.color.foreground;
 
-			if (c.color && color !== c.color) color = c.color;
-			tctx.fillStyle = color?.foreground;
+						break;
+					case "i":
+						// Italic
+						tctx.setTransform(1, 0, -0.25, 1, 0, 0);
 
-			if (c.format && format !== c.format) {
-				format = c.format;
+						break;
+					case "r":
+						// Reset formatting
+						tctx.restore();
 
-				if (format === "i") tctx.transform(1, 0, -0.25, 1, scale * (this.h / (size[1] * scale) - .25), 0);
-				if (format === "r") tctx.restore();
+						break;
+				}
+
+				continue;
 			}
 
+			tctx.globalCompositeOperation = "source-over";
 			tctx.drawImage(
-				Font.image,
+				Font.ascii,
 				...char.uv,
-				...size,
+				char.size,
+				Font.lineHeight,
 				c.x,
 				c.y,
-				...(size.map(s => s * scale)),
+				char.size * scale,
+				Font.lineHeight * scale,
 			);
 
 			tctx.globalCompositeOperation = "source-atop";
-
 			tctx.fillRect(
 				c.x,
 				c.y,
-				...(size.map(s => s * scale)),
+				char.size * scale,
+				Font.lineHeight * scale,
 			);
-
-			tctx.globalCompositeOperation = "source-over";
 		}
 
 		ctx.drawImage(
-			TextBuffer,
-			this.x,
-			this.y,
-			this.w,
-			this.h,
+			Buffer.Text,
+			scaled.x,
+			scaled.y,
+			scaled.w,
+			scaled.h,
 		);
 
-		color = Font.defaultColor;
-		format = null;
-		tctx.globalCompositeOperation = "source-atop";
+		tctx.fillStyle = Font.defaultColor.background;
 		tctx.save();
 
-		// Drop-shadow
-		if (this.textShadow) {
-			const offset = this.textShadowOffset.map(o => o * scale);
+		// Optional drop-shadow
+		if (this.dropShadow) {
+			const shadowOffset = scaled.dropShadowOffset;
 
-			for (const c of this.chars) {
-				if (!Font.char[c.char]) continue;
+			for (const c of scaled.chars) {
+				char = Font.char[c.char];
 
-				let char = Font.char[c.char],
-					size = [char.size, Font.lineHeight];
+				if (c.formatter) {
+					switch (c.formatter) {
+						case "c":
+							// Colorize
+							tctx.fillStyle = c.color.background;
 
-				if (c.color && color !== c.color) color = c.color;
-				tctx.fillStyle = color?.background;
+							break;
+						case "i":
+							// Italic
+							tctx.setTransform(1, 0, -0.25, 1, 0, 0);
 
-				if (c.format && format !== c.format) {
-					format = c.format;
+							break;
+						case "r":
+							// Reset formatting
+							tctx.restore();
 
-					if (format === "i") tctx.transform(1, 0, -0.25, 1, scale * (this.h / (size[1] * scale) - .25), 0);
-					if (format === "r") tctx.restore();
+							break;
+					}
+
+					continue;
 				}
 
-				tctx.fillRect(c.x, c.y, ...(size.map(s => s * scale)));
+				tctx.fillRect(
+					c.x,
+					c.y,
+					char.size * scale,
+					Font.lineHeight * scale,
+				);
 			}
 
 			ctx.drawImage(
-				TextBuffer,
-				this.x + offset[0],
-				this.y - offset[1],
-				this.w,
-				this.h,
+				Buffer.Text,
+				scaled.x + shadowOffset[0],
+				scaled.y - shadowOffset[1],
+				scaled.w,
+				scaled.h,
 			);
 		}
 
-		if (this.background) {
-			ctx.fillStyle = `#${this.background.toString(16)}`;
-			ctx.fillRect(this.x, this.y, this.w, this.h);
-		}
+		this.__draw(ctx);
 	};
 };
